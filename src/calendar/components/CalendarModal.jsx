@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { addHours, differenceInSeconds } from 'date-fns';
 
 import Swal from 'sweetalert2';
@@ -9,6 +9,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import es from 'date-fns/locale/es';
 import { useUiStore } from '../../hooks/useUiStore';
+import { useCalendarStore } from '../../hooks';
 
 registerLocale('es', es);
 
@@ -26,22 +27,35 @@ Modal.setAppElement('#root');
 
 export const CalendarModal = () => {
 
+    const { activeEvent, startSavingEvent } = useCalendarStore();
+
     const { isDateModalOpen, closeDateModal } = useUiStore();
 
     const [formSubmitted, setFormSubmitted] = useState( false );
 
     const [formValues, setFormValues] = useState({
-        title: 'Hugo',
-        notes: 'Espejo',
+        title: '',
+        notes: '',
         start: new Date(),
         end: addHours( new Date(), 2 ),
     });
+
+    
 
     const titleClass = useMemo( () => {
         if ( !formSubmitted ) return "";
 
         return ( formValues.title.length > 0 ) ? "" : "is-invalid";
     }, [formValues.title, formSubmitted] );
+
+    useEffect( () => {
+
+        if ( activeEvent !== null ){
+            setFormValues({ ...activeEvent });
+        }
+
+
+    }, [activeEvent]);
 
     const onInputChange = ({ target }) => {
         setFormValues({
@@ -58,11 +72,11 @@ export const CalendarModal = () => {
     }
 
     const onCloseModal = () => {
-        console.log( 'onCloseDateModal' );
+        
         closeDateModal();
     }
 
-    const onSubmit = ( e ) => {
+    const onSubmit = async( e ) => {
         e.preventDefault();
         setFormSubmitted( true );
 
@@ -75,10 +89,10 @@ export const CalendarModal = () => {
 
         if ( formValues.title.length <= 0 ) return;
 
-        // TODO:
-        // Quitar los errores de validación
-        // cerrar modal
 
+        await startSavingEvent( formValues );
+        closeDateModal();
+        setFormSubmitted( false );
 
     }
 
